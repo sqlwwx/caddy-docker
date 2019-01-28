@@ -4,7 +4,7 @@
 FROM sqlwwx/golang-builder as builder
 
 # builder dependency
-RUN git clone https://github.com/caddyserver/builds /go/src/github.com/caddyserver/builds
+RUN git clone --depth=1 https://github.com/caddyserver/builds /go/src/github.com/caddyserver/builds
 
 # plugin helper
 RUN go get -v github.com/abiosoft/caddyplug/caddyplug
@@ -16,13 +16,17 @@ RUN for plugin in $(echo $plugins | tr "," " "); do \
         /go/src/github.com/mholt/caddy/caddyhttp/$plugin.go ; \
     done
 
-ARG version="0.10.10"
+RUN git clone https://github.com/mholt/caddy /go/src/github.com/mholt/caddy
+
+ARG version="0.11.2"
 ARG plugins="git"
 
+RUN cd /go/src/github.com/mholt/caddy; git pull
 # caddy
-RUN git clone https://github.com/mholt/caddy -b "v${version}" /go/src/github.com/mholt/caddy \
-    && cd /go/src/github.com/mholt/caddy \
+RUN cd /go/src/github.com/mholt/caddy \
     && git checkout -b "v${version}"
+
+RUN cd /go/src/github.com/caddyserver/builds; git pull
 
 # build
 RUN cd /go/src/github.com/mholt/caddy/caddy \
@@ -35,10 +39,15 @@ RUN cd /go/src/github.com/mholt/caddy/caddy \
 #
 # Final stage
 #
-FROM alpine:3.7
-LABEL maintainer "Abiola Ibrahim <abiola89@gmail.com>"
+FROM alpine:3.8
+LABEL maintainer "sqlwwx <wwx_2012@live.com>"
+LABEL caddy_version="0.11.2"
 
-LABEL caddy_version="0.10.10"
+RUN echo http://mirrors.aliyun.com/alpine/v3.8/main > /etc/apk/repositories; \
+    echo http://mirrors.aliyun.com/alpine/v3.8/community >> /etc/apk/repositories
+
+RUN apk update \
+    apk upgrade
 
 RUN apk add --no-cache openssh-client git
 
